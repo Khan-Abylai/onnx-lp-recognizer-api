@@ -13,7 +13,7 @@ np.seterr(all="ignore")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%m-%d %H:%M:%S')
 app = FastAPI()
-detector = LicensePlateDetector('detector_model_retinaface_trained.onnx', image_width=640, image_height=480)
+detector = LicensePlateDetector('detector_model_retinaface.onnx', image_width=640, image_height=480)
 recognizer = LicensePlateRecognizer('recognizer_base.onnx')
 
 
