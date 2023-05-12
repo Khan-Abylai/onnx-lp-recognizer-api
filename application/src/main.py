@@ -37,14 +37,17 @@ async def analyze_route(request: Request):
         image_base64 = await form["image"].read()  # bytes
         content_type = form["image"].content_type  # str
         image = readb64(image_base64)
-        t2 = time.time()
 
-        print(f"Time for reading image:{t2 - t1} seconds")
+
 
         result, plate_img, flag = detector.run(image)
+
         if flag:
             label, prob = recognizer.run(plate_img)
-            return {'status': True, 'data': {'label': label, 'prob': prob}}
+            t2 = time.time()
+            exec_time = t2 - t1
+            print(f"Time for executing image:{t2 - t1} seconds")
+            return {'status': True, 'data': {'label': label, 'prob': prob, "exec_time":exec_time}}
         else:
             return {"status": False, "data": 'Not Recognized'}
     else:

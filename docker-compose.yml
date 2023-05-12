@@ -1,13 +1,9 @@
 version: '3'
-networks:
-  backend:
 services:
   api:
     hostname: api
     container_name: api
     build: application/
-    volumes:
-      - /mnt/storage/tmp_storage:/opt/api/debug
     environment:
       - LANG=C.UTF-8
       - LC_ALL=C.UTF-8

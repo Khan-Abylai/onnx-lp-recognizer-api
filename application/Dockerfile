@@ -33,7 +33,7 @@ RUN apt-get update \
     libpng-dev libopenexr-dev libtiff-dev libwebp-dev \
   && apt-get clean
 
-RUN sudo pip3 install tqdm llvmlite scipy opencv-python uvicorn fastapi python-multipart scikit-image pycocotools shortuuid onnxruntime onnx torch
+RUN sudo pip3 install tqdm llvmlite scipy opencv-python uvicorn fastapi python-multipart scikit-image pycocotools shortuuid onnxruntime onnx torch==1.9.0+cpu torchvision==0.10.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
 
 ADD src/ /opt/api/
 ADD weights/ /opt/api
