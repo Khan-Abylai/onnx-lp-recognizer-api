@@ -6,9 +6,10 @@ import torch
 import onnxruntime
 import numpy as np
 import time
-from config import cfg_mnet
-from utils import PriorBox, decode, decode_landm, py_cpu_nms
 import shortuuid
+
+from .config import cfg_mnet
+from .utils import PriorBox, decode, decode_landm, py_cpu_nms
 
 
 def to_numpy(tensor):

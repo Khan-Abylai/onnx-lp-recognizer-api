@@ -2,19 +2,37 @@ import time
 import numpy as np
 import warnings
 import logging
-from fastapi import FastAPI
-from fastapi import Request
-from utils import readb64
-from detection_service import LicensePlateDetector
-from recognizer_service import LicensePlateRecognizer
+from fastapi import FastAPI, Request, HTTPException, File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from .utils import readb64
+from .detection_service import LicensePlateDetector
+from .recognizer_service import LicensePlateRecognizer
+from .config import settings
+
 
 warnings.filterwarnings("ignore")
 np.seterr(all="ignore")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%m-%d %H:%M:%S')
-app = FastAPI()
-detector = LicensePlateDetector('detector_model_retinaface.onnx', image_width=640, image_height=480)
-recognizer = LicensePlateRecognizer('recognizer_base.onnx')
+app = FastAPI(
+    title=settings.APP_NAME,
+    description="API for license plate detection and recognition",
+    version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+detector = LicensePlateDetector(settings.MODEL_PATH_DETECTOR, image_width=settings.IMAGE_WIDTH, image_height=settings.IMAGE_HEIGHT)
+recognizer = LicensePlateRecognizer(settings.MODEL_PATH_RECOGNIZER)
 
 
 @app.get("/")
@@ -28,39 +46,72 @@ async def say_hello(name: str):
 
 
 @app.post('/api/checkImage')
-async def analyze_route(request: Request):
-    form = await request.form()
-    if "image" in form:
+async def analyze_route(
+    file: UploadFile = File(...),
+    request: Request = None
+):
+    """
+    Analyze an image for license plate detection and recognition.
+    """
+    try:
+        # Read file content
+        contents = await file.read()
+        file_size = len(contents)
+        
+        # Validate file size
+        if file_size > settings.MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File too large. Maximum size is {settings.MAX_FILE_SIZE/1024/1024:.1f}MB"
+            )
+
+        # Validate file type
+        file_ext = file.filename.split('.')[-1].lower()
+        if file_ext not in settings.ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File type not allowed. Allowed types: {settings.ALLOWED_EXTENSIONS}"
+            )
+
+        # Process image
+        image = readb64(contents)
+
         t1 = time.time()
-        upload_file = form["image"]
-        filename = form["image"].filename  # str
-        image_base64 = await form["image"].read()  # bytes
-        content_type = form["image"].content_type  # str
-        image = readb64(image_base64)
-
-
-
+        
+        # Detection
         result, plate_img, flag = detector.run(image)
+        
+        if not flag:
+            return JSONResponse(
+                status_code=404,
+                content={"status": False, "data": "No license plate detected"}
+            )
 
-        if flag:
-            label, prob = recognizer.run(plate_img)
-            t2 = time.time()
-            exec_time = t2 - t1
-            print(f"Time for executing image:{t2 - t1} seconds")
-            return {'status': True, 'data': {'label': label, 'prob': prob, "exec_time":exec_time}}
-        else:
-            return {"status": False, "data": 'Not Recognized'}
-    else:
-        return {"status": False, "data": None}
+        # Recognition
+        label, prob = recognizer.run(plate_img)
+        
+        t2 = time.time()
+        exec_time = t2 - t1
 
+        return JSONResponse(content={
+            'status': True,
+            'data': {
+                'label': label,
+                'confidence': float(prob),
+                'exec_time': exec_time
+            }
+        })
 
-@app.post("/api/image")
-async def analyze_route(request: Request):
-    form = await request.form()
-    if "image" in form:
-        t1 = time.time()
-        upload_file = form["image"]
-        filename = form["image"].filename  # str
-        image_base64 = await form["image"].read()  # bytes
-        content_type = form["image"].content_type  # str
-        image = readb64(image_base64)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logging.error(f"Error processing image: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "timestamp": time.time(),
+        "version": "1.0.0"
+    }

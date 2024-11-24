@@ -1,4 +1,19 @@
-# config.py
+from pydantic_settings import BaseSettings
+
+class Settings(BaseSettings):
+    APP_NAME: str = "License Plate Recognition API"
+    DEBUG: bool = False
+    MODEL_PATH_DETECTOR: str = "models/detector_model_retinaface.onnx"
+    MODEL_PATH_RECOGNIZER: str = "models/recognizer_base.onnx"
+    IMAGE_WIDTH: int = 640
+    IMAGE_HEIGHT: int = 480
+    MAX_FILE_SIZE: int = 5 * 1024 * 1024  # 5MB
+    ALLOWED_EXTENSIONS: set = {"jpg", "jpeg", "png"}
+    
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
 
 cfg_mnet = {
     'name': 'mobilenet0.25',

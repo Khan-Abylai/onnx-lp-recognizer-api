@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from math import ceil
 from itertools import product as product
-
+import base64
 
 class PriorBox(object):
     def __init__(self, cfg, image_size=None, phase='train'):
@@ -35,10 +35,27 @@ class PriorBox(object):
         return output
 
 
-def readb64(uri):
-    nparr = np.fromstring(uri, np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    return img
+
+def readb64(image_data):
+    """
+    Convert image data (bytes or base64 string) to numpy array
+    """
+    try:
+        # If input is bytes, convert directly to numpy array
+        if isinstance(image_data, bytes):
+            nparr = np.frombuffer(image_data, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        else:
+            # Assume it's base64 string
+            nparr = np.frombuffer(base64.b64decode(image_data), np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            raise ValueError("Failed to decode image")
+            
+        return img
+    except Exception as e:
+        raise ValueError(f"Error reading image: {str(e)}")
 
 
 def py_cpu_nms(dets, thresh):

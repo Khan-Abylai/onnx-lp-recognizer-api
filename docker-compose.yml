@@ -1,18 +1,21 @@
-version: '3'
+version: '3.8'
+
 services:
-  api:
-    hostname: api
-    container_name: api
-    build: application/
-    environment:
-      - LANG=C.UTF-8
-      - LC_ALL=C.UTF-8
-      - TZ=Asia/Almaty
-      - PYTHONUNBUFFERED=1
+  license-plate-api:
+    build: .
+    container_name: license-plate-api
     restart: always
     ports:
-      - "9001:9001"
-    logging:
-      options:
-        max-size: 50m
-
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+    environment:
+      - ENVIRONMENT=production
+      - MAX_WORKERS=4
+      - TIMEOUT=120
+    command: >
+      uvicorn src.main:app 
+      --host 0.0.0.0 
+      --port 8000 
+      --workers 4 
+      --timeout-keep-alive 120

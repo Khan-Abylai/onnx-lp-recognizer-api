@@ -1,14 +1,9 @@
-FROM python:3.7
-ENV TZ=Asia/Almaty
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-RUN export LC_ALL=C.UTF-8
-RUN export LANG=C.UTF-8
-ENV LC_ALL en_US.UTF-8
-ENV LANG en_US.UTF-8
-ENV LANGUAGE en_US.UTF-8
+FROM python:3.9-slim
 
-RUN DEBIAN_FRONTEND="noninteractive" apt-get update && apt-get -y install tzdata sudo
+# Set working directory
+WORKDIR /app
 
+# Install system dependencies
 RUN apt-get update \
   && apt-get install -y ssh \
     build-essential \
@@ -25,19 +20,26 @@ RUN apt-get update \
     dos2unix \
     rsync \
     tar \
-    python \
+    python-is-python3 2to3 \
     python3-dev \
     python3-pip \
     ffmpeg libsm6 libxext6 libavcodec-dev libavformat-dev libswscale-dev \
     libgstreamer-plugins-base1.0-dev libgstreamer1.0-dev libgtk-3-dev\
     libpng-dev libopenexr-dev libtiff-dev libwebp-dev \
-  && apt-get clean
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN sudo pip3 install tqdm llvmlite scipy opencv-python uvicorn fastapi python-multipart scikit-image pycocotools shortuuid onnxruntime onnx torch==1.9.0+cpu torchvision==0.10.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+    RUN pip install --upgrade pip
+    RUN pip install tqdm pydantic_settings llvmlite scipy opencv-python uvicorn fastapi python-multipart scikit-image pycocotools shortuuid onnxruntime onnx torch torchvision pydantic 
+# Copy application code
+COPY . .
 
-ADD src/ /opt/api/
-ADD weights/ /opt/api
-WORKDIR /opt/api/
-RUN mkdir /opt/api/debug
+# Create necessary directories
+RUN mkdir -p logs
 
-ENTRYPOINT ["sh", "entrypoint.sh"]
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV ENVIRONMENT=production
+
+# Run the application
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
