@@ -1,0 +1,16 @@
+tqdm
+pydantic_settings
+llvmlite
+scipy
+opencv-python
+uvicorn
+fastapi
+python-multipart
+scikit-image
+pycocotools
+shortuuid
+onnxruntime
+onnx
+torch
+torchvision
+pydantic

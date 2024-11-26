@@ -1,8 +1,11 @@
 version: '3.8'
-
+networks:
+  backend:
 services:
   license-plate-api:
-    build: .
+    build:
+      context: ./application
+      dockerfile: Dockerfile
     container_name: license-plate-api
     restart: always
     ports:
@@ -13,9 +16,33 @@ services:
       - ENVIRONMENT=production
       - MAX_WORKERS=4
       - TIMEOUT=120
+    privileged: true
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+          cpus: "4"
     command: >
       uvicorn src.main:app 
       --host 0.0.0.0 
       --port 8000 
-      --workers 4 
+      --workers 4
       --timeout-keep-alive 120
+    networks:
+      - backend
+
+  telegram:
+    hostname: bot
+    container_name: bot
+    build: telegram/
+    environment:
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
+      - PYTHONUNBUFFERED=1
+    restart: always
+    ipc: host
+    logging:
+      options:
+        max-size: 50m
+    networks:
+      - backend
