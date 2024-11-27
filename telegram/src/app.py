@@ -2,7 +2,7 @@ import os
 import cv2
 import logging
 import requests
-from config import TOKEN
+from config import TOKEN, URL
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 import shortuuid
 
@@ -29,9 +29,8 @@ def callback_fromImage_toCaption(update, context):
             raise ValueError("Не удалось загрузить изображение.")
 
         file = cv2.imencode(".png", img)[1].tobytes()
-        url = "http://license-plate-api:8000/api/checkImage"
         files = {"file": ("photo.png", file, "image/png")}
-        response = requests.post(url, files=files)
+        response = requests.post(URL, files=files)
 
         if response.status_code == 200 and response.json().get("status"):
             label = response.json()["data"]["label"]
